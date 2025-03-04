@@ -19,6 +19,9 @@ import torch
 from torch.cuda.amp import autocast
 import torch.backends.cudnn as cudnn
 
+import torch.cuda.profiler as profiler      # ADDED BY SID
+import pyprof                               # ADDED BY SID
+
 from image_classification import models
 import torchvision.transforms as transforms
 
@@ -34,6 +37,7 @@ from image_classification.models import (
     efficientnet_quant_b4,
 )
 
+pyprof.init()   # ADDED BY SID
 
 def available_models():
     models = {
@@ -135,7 +139,9 @@ def main(args, model_args):
     input = load_jpeg_from_file(args.image, args.image_size, cuda=not args.cpu)
 
     with torch.no_grad(), autocast(enabled=args.precision == "AMP"):
+        profiler.start()    # ADDED BY SID
         output = torch.nn.functional.softmax(model(input), dim=1)
+        profiler.stop()     # ADDED BY SID
 
     output = output.float().cpu().view(-1).numpy()
     top5 = np.argsort(output)[-5:][::-1]
