@@ -149,16 +149,22 @@ class Bottleneck(nn.Module):
     def forward(self, x):
         residual = x
 
+        torch.cuda.nvtx.range_push("LayerA")
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
+        torch.cuda.nvtx.range_pop()
 
+        torch.cuda.nvtx.range_push("LayerB")
         out = self.conv2(out)
         out = self.bn2(out)
         out = self.relu(out)
+        torch.cuda.nvtx.range_pop()
 
+        torch.cuda.nvtx.range_push("LayerC")
         out = self.conv3(out)
         out = self.bn3(out)
+        torch.cuda.nvtx.range_pop()
 
         if self.downsample is not None:
             residual = self.downsample(x)
@@ -321,21 +327,7 @@ class ResNet(nn.Module):
         x = self.stem(x)
         torch.cuda.nvtx.range_pop()
 
-        torch.cuda.nvtx.range_push("Group1")
-        x = self.layers[0](x)
-        torch.cuda.nvtx.range_pop()
-
-        torch.cuda.nvtx.range_push("Group2")
-        x = self.layers[1](x)
-        torch.cuda.nvtx.range_pop()
-
-        torch.cuda.nvtx.range_push("Group3")
-        x = self.layers[2](x)
-        torch.cuda.nvtx.range_pop()
-
-        torch.cuda.nvtx.range_push("Group4")
-        x = self.layers[3](x)
-        torch.cuda.nvtx.range_pop()
+        x = self.layers(x)
 
         torch.cuda.nvtx.range_push("Classifier")
         x = self.classifier(x)
