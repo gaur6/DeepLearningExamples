@@ -35,6 +35,7 @@ from typing import List, Dict, Callable, Any, Type
 
 import torch
 import torch.nn as nn
+import torch.cuda.nvtx        # ADDED BY SID
 
 from .common import (
     SqueezeAndExcitation,
@@ -316,9 +317,29 @@ class ResNet(nn.Module):
         return x
 
     def forward(self, x):
+        torch.cuda.nvtx.range_push("Stem")
         x = self.stem(x)
-        x = self.layers(x)
+        torch.cuda.nvtx.range_pop()
+
+        torch.cuda.nvtx.range_push("Group1")
+        x = self.layers[0](x)
+        torch.cuda.nvtx.range_pop()
+
+        torch.cuda.nvtx.range_push("Group2")
+        x = self.layers[1](x)
+        torch.cuda.nvtx.range_pop()
+
+        torch.cuda.nvtx.range_push("Group3")
+        x = self.layers[2](x)
+        torch.cuda.nvtx.range_pop()
+
+        torch.cuda.nvtx.range_push("Group4")
+        x = self.layers[3](x)
+        torch.cuda.nvtx.range_pop()
+
+        torch.cuda.nvtx.range_push("Classifier")
         x = self.classifier(x)
+        torch.cuda.nvtx.range_pop()
         return x
 
     def extract_features(self, x, layers=None):
